@@ -8854,7 +8854,7 @@ MonoBehaviour:
   notifficationText: {fileID: 9164232}
   notifficationCanvas: {fileID: 189457152}
   githubUsername: FoxComment
-  githubRepo: koboldKare-VR-Mod
+  githubRepo: XRController
 --- !u!1 &1021330609
 GameObject:
   m_ObjectHideFlags: 0
