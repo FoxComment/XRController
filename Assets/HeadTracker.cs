@@ -7,7 +7,7 @@ using OscJack;
 using UnityEngine.Networking;
 using System.Security.Policy;
 using UnityEngine.SocialPlatforms;
-using UnityEngine.SceneManagement;
+using UnityEngine.SceneManagement; 
 
 [HelpURL("https://github.com/FoxComment/XRController/blob/main/README.md")]
 public class HeadTracker : MonoBehaviour
@@ -159,10 +159,9 @@ public class HeadTracker : MonoBehaviour
 	[SerializeField] private Toggle potatoModeTOGGLE;
 	[SerializeField] private Toggle stayAwakeTOGGLE;
 	[SerializeField] private Toggle askPackageTypeOnStartTOGGLE;
-	[SerializeField] private Toggle joyVisualizeChangesTOGGLE;
-    [SerializeField] private Slider motionSmoothingSLIDER;
-    [SerializeField] private Slider joyDeadzoneSLIDER;
-    [SerializeField] private Slider joySticknessSLIDER;
+	[SerializeField] private Slider joyDeadzoneSLIDER;
+	[SerializeField] private Slider joySensitivitySLIDER;
+    [SerializeField] private Slider motionSmoothingSLIDER; 
     [SerializeField] private Dropdown inputTypeDROPDOWN;
     [SerializeField] private Text updateNotiffTEXT;
     [SerializeField] private Text settingsPageTEXT;
@@ -177,16 +176,17 @@ public class HeadTracker : MonoBehaviour
 	[SerializeField] private Camera cam;
 	private OSCController controller = new OSCController();
 	[SerializeField] private Transform debugThreeDCubeTRA;
-	[SerializeField] private Transform positionalJointTRA;
+	[SerializeField] private GameObject recalibrationButtons;
+    [SerializeField] private Transform positionalJointTRA;
 	[SerializeField] private RectTransform backgroundDecoStripes;
 	[SerializeField] private RectTransform backgroundDecoStripesTwo;
 	[SerializeField] private RectTransform backgroundDecoStripesThree;
-	[SerializeField] private GameObject debugModeTab;
-	//private Slider[] trackerPosSLIDES;
+	[SerializeField] private Image recenterProgressIMAGE;
+	[SerializeField] private GameObject debugModeTab; 
 	[SerializeField] private Image statusLED;
 	[SerializeField] private Text dataText;
 	private Quaternion correctionQuaternion;
-	private float controllerotationOffset;
+	private Vector3 controllerotationOffset;
 	private Animator uiANIM;
 	[SerializeField] private Color[] statusLEDColors; 
 
@@ -215,7 +215,7 @@ public class HeadTracker : MonoBehaviour
 	/// </summary>
 	private string githubLatestReleaseURL;
 	[SerializeField][Tooltip("Your Github username \n(So app can fetch updates from your user page)")] 
-	private string githubUsername = "FoxComment";
+	private string githubUsername = "Name";
 	[SerializeField][Tooltip("Your Repo name \n(So app can fetch updates from it)")] 
 	private string githubRepo = "XRController";
 	bool touchActive;
@@ -257,8 +257,8 @@ public class HeadTracker : MonoBehaviour
 	/ string	ConnectionIP			192.168.N
 	/ string	LastUsedVersion			N
     / float		MotionSmoothing			0 - 1f
-    / float		StickDeadzone			0 - .9f
-    / float		StickDirectionalSnap	0 - .25f
+    / float		StickDeadzone			0f - 1f
+    / float		stickSensitivity		.2 - 1f
     / int		InputType				0 - N
     / int		DisableYAxis			0, 1
     / int		SendDataInOnePackage	-1, 1
@@ -269,11 +269,12 @@ public class HeadTracker : MonoBehaviour
     / 
     */
 
+
     public static string connectionIP;
     public static string lastUsedVersion;
     public static float motionSmoothing;
     public static float stickDeadzone;
-    public static float stickDirectionalSnap;
+    public static float stickSensitivity;
     public static int inputType;
     public static int disableYAxis;
 	public static bool sendDataInOnePackage;
@@ -281,6 +282,8 @@ public class HeadTracker : MonoBehaviour
 	public static bool stayAwake;	
 	public static bool potatoMode; 
 	public static bool visualizeJoyRestrictions;
+	//HAD NO TIME TO MAKE THEM WORK TILL INITIAL RELEASE
+
 
     /*
 	 * ________________________________
@@ -311,8 +314,11 @@ public class HeadTracker : MonoBehaviour
 		correctionQuaternion = Quaternion.Euler(90f, 0f, 0f);
 		uiANIM = GetComponent<Animator>();
         githubRepoAPIURL = "https://api.github.com/repos/" + githubUsername + "/" + githubRepo + "/releases?sort=created&direction=desc";
+		recenterProgressIMAGE.fillAmount = 0;
 
         inputTypeDROPDOWN.options.Clear();
+		recalibrationButtons.SetActive(false);
+
         foreach (OSCAddresses _preset in oscModeAddresses)
             inputTypeDROPDOWN.options.Add(new Dropdown.OptionData() { text = _preset._presetName, image = null });
 
@@ -335,7 +341,8 @@ public class HeadTracker : MonoBehaviour
 		InvokeRepeating("DebugHUDUpdate", .2f, .2f);
         //START DEBUG DRAW ON SETTINGS SCREEN
 
-        FetchUpdates();
+        if(autoUpdates)
+			FetchUpdates();
 		//IF UPDATE SETTING ENABLED
 
         if (Application.internetReachability == NetworkReachability.NotReachable)
@@ -366,8 +373,8 @@ public class HeadTracker : MonoBehaviour
 	{
 		controller._conRot = GetDeviceRotation();
 		positionalJointTRA.rotation = Quaternion.Euler(controller._conRot);
-		debugThreeDCubeTRA.rotation = Quaternion.Euler(controller._conRot);
-		//controller._conPos = new Vector3(trackerPosSLIDES[0].value, trackerPosSLIDES[1].value, trackerPosSLIDES[2].value) + positionalJointTRA.GetChild(0).position;
+		debugThreeDCubeTRA.rotation = Quaternion.Euler(controller._conRot); 
+		controller._conPos = positionalJointTRA.GetChild(0).position;
 
 		if (Input.GetKeyDown(KeyCode.Escape) && !HasActivePopups())
 			uiANIM.SetBool("ControllerScreen", !uiANIM.GetBool("ControllerScreen"));
@@ -421,10 +428,10 @@ public class HeadTracker : MonoBehaviour
             PlayerPrefs.SetFloat("MotionSmoothing", .2f);
 
         if (!PlayerPrefs.HasKey("StickDeadzone"))
-            PlayerPrefs.SetFloat("StickDeadzone", 0);
+            PlayerPrefs.SetFloat("StickDeadzone", .2f);
 
-        if (!PlayerPrefs.HasKey("StickDirectionalSnap"))
-            PlayerPrefs.SetFloat("StickDirectionalSnap", 0);
+        if (!PlayerPrefs.HasKey("StickSensitivity"))
+            PlayerPrefs.SetFloat("StickSensitivity", 1);
 
         if (!PlayerPrefs.HasKey("InputType"))
             PlayerPrefs.SetInt("InputType", 0);
@@ -462,7 +469,7 @@ public class HeadTracker : MonoBehaviour
                 Application.targetFrameRate = 75;
 				potatoModeTOGGLE.isOn = false;
                 break;
-        }
+        }//NOT YET FINISHED
 
 
         switch (PlayerPrefs.GetInt("AutoUpdates"))
@@ -510,16 +517,26 @@ public class HeadTracker : MonoBehaviour
         //SET ALL THE TOGGLES TO RIGHT STATES
 
 		
-        motionSmoothingSLIDER.value = PlayerPrefs.GetFloat("MotionSmoothing");
-        joySticknessSLIDER.value = PlayerPrefs.GetFloat("StickDirectionalSnap");
-        joyDeadzoneSLIDER.value = PlayerPrefs.GetFloat("StickDeadzone");
+        motionSmoothingSLIDER.value = PlayerPrefs.GetFloat("MotionSmoothing"); 
+        joyDeadzoneSLIDER.value = PlayerPrefs.GetFloat("StickDeadzone"); 
+        joySensitivitySLIDER.value = PlayerPrefs.GetFloat("StickSensitivity");
         //SET ALL THE SLIDERS TO RIGHT STATES
 
         inputTypeDROPDOWN.value = (PlayerPrefs.GetInt("InputType", 0));
         //SET ALL THE DROPDOWNS TO RIGHT STATES
 
         connectionIP = PlayerPrefs.GetString("ConnectionIP");
-		//SET ALL THE OTHER NEEDED STUFF
+        //SET ALL THE OTHER NEEDED STUFF
+
+        inputType = PlayerPrefs.GetInt("InputType");
+        disableYAxis = PlayerPrefs.GetInt("DisableYAxis");
+        stayAwake = (PlayerPrefs.GetInt("StayAwake") == 1);
+        potatoMode = (PlayerPrefs.GetInt("PotatoMode") == 1);
+        autoUpdates = (PlayerPrefs.GetInt("AutoUpdates") == 1);
+        sendDataInOnePackage = (PlayerPrefs.GetInt("SendDataInOnePackage") == 1);
+        stickSensitivity = PlayerPrefs.GetFloat("StickSensitivity");
+        motionSmoothing = PlayerPrefs.GetFloat("MotionSmoothing");
+        stickDeadzone = PlayerPrefs.GetFloat("StickDeadzone");
     }
 
 
@@ -603,12 +620,13 @@ public class HeadTracker : MonoBehaviour
     Vector3 GetDeviceRotation()
     {
 #if UNITY_EDITOR_WIN
+		
         return new Vector3(Mathf.RoundToInt(Mathf.Sin(Input.mousePosition.x /360f)), Mathf.RoundToInt(Mathf.Sin(Input.mousePosition.x / 360f)), Mathf.RoundToInt(Mathf.Sin(Input.mousePosition.y / 360f)));
 #else
 		if (IsGyroSupported())
 		{ 
 			Quaternion calculatedRotation = correctionQuaternion * new Quaternion(Input.gyro.attitude.x, Input.gyro.attitude.y, -Input.gyro.attitude.z, -Input.gyro.attitude.w);
-			return new Vector3(calculatedRotation.eulerAngles.x, calculatedRotation.eulerAngles.y * disableYAxis, calculatedRotation.eulerAngles.z);
+			return new Vector3(calculatedRotation.eulerAngles.x, calculatedRotation.eulerAngles.y * disableYAxis, calculatedRotation.eulerAngles.z) + controllerotationOffset;
 		}
         else 
 		{
@@ -618,12 +636,12 @@ public class HeadTracker : MonoBehaviour
     }
 
 
-#endregion
+    #endregion
 
 
-	#region Actions
-	
-	
+    #region Actions
+
+
 
 
     public void UpdateDiagClose() { uiANIM.SetBool("Update", false); }
@@ -638,16 +656,23 @@ public class HeadTracker : MonoBehaviour
     public void FetchUpdates() { StartCoroutine(HandleGitHubRequest()); }
 
 
-    public void InteractTouchpad(bool dragging) { touchActive = dragging; }
+    public void InteractTouchpad(bool _dragging) { touchActive = _dragging; }
 
 
     public void InteractPageListing(int _list) { ListSettingsPage(_list); }
 
 
-    public void InteractBackButton(int pressed) { controller._back = pressed; }
+    public void InteractBackButton(int _pressed) 
+	{
+		controller._back = _pressed;
+		if (_pressed == 1) StartCoroutine(HandleRecentering()); 
+	}
 
 
-    public void InteractUseButton(int pressed) { controller._use = pressed; }
+    public void InteractUseButton(int _pressed) { controller._use = _pressed; }
+
+
+    public void InteractRotationAdjustButton(float _deg) { controllerotationOffset += new Vector3(0, _deg,0); }
 
 
     public void InteractInputType() { PlayerPrefs.SetInt("InputType", inputTypeDROPDOWN.value); }
@@ -669,11 +694,11 @@ public class HeadTracker : MonoBehaviour
     }
 
 
-    public void InteractSnappingSlider()
+    public void InteractSensitivitySlider()
     {
-        stickDirectionalSnap = joySticknessSLIDER.value;
+        stickSensitivity = joySensitivitySLIDER.value;
 
-        PlayerPrefs.SetFloat("StickDirectionalSnap", stickDirectionalSnap);
+        PlayerPrefs.SetFloat("StickSensitivity", stickSensitivity);
     }
 
 
@@ -805,7 +830,29 @@ public class HeadTracker : MonoBehaviour
 
 
 
-    
+    IEnumerator HandleRecentering()
+    { 
+
+        for (float i = 2; i >= 0; i -= Time.deltaTime)
+        {
+			recenterProgressIMAGE.fillAmount = (i - 1) * -1;
+			if (controller._back == 0)
+            {
+                recenterProgressIMAGE.fillAmount = 0;
+                yield break;
+			}
+            yield return null;
+        }
+
+        Handheld.Vibrate();
+        recenterProgressIMAGE.fillAmount = 0;
+        recalibrationButtons.SetActive(true);
+
+        yield return new WaitUntil(()=> touchActive);
+		recalibrationButtons.SetActive(false);
+    }
+
+
     IEnumerator HandleJoystickMovement()
     {
         while (true)
@@ -814,9 +861,13 @@ public class HeadTracker : MonoBehaviour
 
             while (touchActive)
             {
-                touchpadTRA.position = Input.mousePosition;
-                touchpadTRA.localPosition = Vector3.ClampMagnitude(touchpadTRA.localPosition, 93);
-                controller._touch = touchpadTRA.localPosition / 93f;
+                touchpadTRA.position = Input.mousePosition;											//USE INPUT.TOUCH INSTEAD
+                touchpadTRA.localPosition = Vector3.ClampMagnitude(touchpadTRA.localPosition, 93); 
+				if((touchpadTRA.localPosition / 93).magnitude > stickDeadzone)
+					controller._touch = touchpadTRA.localPosition / 93f * stickSensitivity;
+                else
+                    controller._touch = Vector2.zero;
+
                 yield return new WaitForEndOfFrame();
             }
 
@@ -846,7 +897,7 @@ public class HeadTracker : MonoBehaviour
                 yield return new WaitForSeconds(4);
 
 				uiANIM.SetBool("NotifficationDisplay", false);
-				 
+				
             }
 
         }

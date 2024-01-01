@@ -12,7 +12,7 @@ SpriteAtlas:
       anisoLevel: 1
       compressionQuality: 50
       maxTextureSize: 1024
-      textureCompression: 3
+      textureCompression: 1
       filterMode: 1
       generateMipMaps: 0
       readable: 0
@@ -34,20 +34,14 @@ SpriteAtlas:
     - {fileID: 21300000, guid: f9c26c6d43e704b4ebaddb828b5c31b3, type: 3}
     - {fileID: 21300000, guid: 1e6ee92f26d2446428ece3f00f427481, type: 3}
     - {fileID: 21300000, guid: c8a38e6d6b5885840aaee2f131e0ef66, type: 3}
-    - {fileID: 21300000, guid: b9c25ca61b418ec4dbcf32ce24a22fc9, type: 3}
     - {fileID: 21300000, guid: 316f4554de112bd479ad74b026862b2c, type: 3}
-    - {fileID: 21300000, guid: e24882e0af6691144972a8d4259825eb, type: 3}
-    - {fileID: 21300000, guid: 6720b4c1e6c5a7f4cb71ee58e4d6e3b6, type: 3}
-    totalSpriteSurfaceArea: 332800
+    totalSpriteSurfaceArea: 262144
     bindAsDefault: 1
   m_MasterAtlas: {fileID: 0}
   m_PackedSprites:
   - {fileID: 21300000, guid: cea2c5699d090864a93342abf5cc316c, type: 3}
   - {fileID: 21300000, guid: e94531fb7dc5e47439ab28639bb93b7f, type: 3}
   - {fileID: 21300000, guid: f9c26c6d43e704b4ebaddb828b5c31b3, type: 3}
-  - {fileID: 21300000, guid: b9c25ca61b418ec4dbcf32ce24a22fc9, type: 3}
-  - {fileID: 21300000, guid: e24882e0af6691144972a8d4259825eb, type: 3}
-  - {fileID: 21300000, guid: 6720b4c1e6c5a7f4cb71ee58e4d6e3b6, type: 3}
   - {fileID: 21300000, guid: 316f4554de112bd479ad74b026862b2c, type: 3}
   - {fileID: 21300000, guid: 36e531b867d89a44f925dc13c82e5b2e, type: 3}
   - {fileID: 21300000, guid: c8a38e6d6b5885840aaee2f131e0ef66, type: 3}
@@ -56,9 +50,6 @@ SpriteAtlas:
   - UseIco
   - BackIco
   - PaneBG
-  - Device
-  - Folder
-  - age
   - Shadow
   - Dropdown
   - g2799-6
